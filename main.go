@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
-	"math/rand"
 	"time"
 
 	"github.com/knusbaum/go9p"
@@ -32,7 +31,7 @@ func (f *devicesFile) Read(fid uint64, offset uint64, count uint64) ([]byte, err
 	bs := make([]byte, 0, count)
 
 	for k, e := range devices {
-		line := []byte(fmt.Sprintf("%s: %s (%ddBm)\n", e.lastUpdate.Format(time.StampMilli), k, e.rssi))
+		line := []byte(fmt.Sprintf("%s (%ddBm): %s - %d entries\n", k, e.rssi, e.lastUpdate.Format(time.StampMilli), len(e.data)))
 		if len(line) < int(count) {
 			bs = append(bs, line...)
 		} else {
@@ -82,35 +81,15 @@ func main() {
 		fs.WithRemoveFile(fs.RMFile),
 		fs.IgnorePermissions(),
 		//fs.WithAuth(fs.Plan9Auth),
-		// fs.WithAuth(fs.PlainAuth(map[string]string{
+		//fs.WithAuth(fs.PlainAuth(map[string]string{
 		// 	"kyle": "foo",
 		// 	"jake": "bar",
-		// })),
+		//})),
 	)
 
-	root.AddChild(fs.NewStaticFile(
-		myFs.NewStat("static", "glenda", "glenda", 0666),
-		[]byte("Hello, World!\n"),
-	))
-
-	root.AddChild(fs.NewDynamicFile(
-		myFs.NewStat("time", "glenda", "glenda", 0666),
-		func() []byte {
-			return []byte(time.Now().String() + "\n")
-		},
-	))
 
 	root.AddChild(&devicesFile{
 		*fs.NewBaseFile(myFs.NewStat("devices", "glenda", "glenda", 0666)),
-	})
-
-	root.AddChild(&fs.WrappedFile{
-		File: fs.NewBaseFile(myFs.NewStat("wrappedRand", "glenda", "glenda", 0666)),
-		ReadF: func(fid uint64, offset uint64, count uint64) ([]byte, error) {
-			bs := make([]byte, count)
-			rand.Read(bs)
-			return bs, nil
-		},
 	})
 
 	dir = fs.NewStaticDir(myFs.NewStat("devs", "glenda", "glenda", 0777))
