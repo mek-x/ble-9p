@@ -32,7 +32,7 @@ func (f *devicesFile) Read(fid uint64, offset uint64, count uint64) ([]byte, err
 	bs := make([]byte, 0, count)
 
 	for k, e := range devices {
-		line := []byte(fmt.Sprintf("%s: %s\n", k, e.lastUpdate.Format(time.StampMilli)))
+		line := []byte(fmt.Sprintf("%s: %s (%ddBm)\n", e.lastUpdate.Format(time.StampMilli), k, e.rssi))
 		if len(line) < int(count) {
 			bs = append(bs, line...)
 		} else {

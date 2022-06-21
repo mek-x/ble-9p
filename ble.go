@@ -28,7 +28,7 @@ func StartBleScan() {
 	// Scan for specified duration, or until interrupted by user.
 	ctx := ble.WithSigHandler(context.WithCancel(context.Background()))
 
-	go ble.Scan(ctx, false, advHandler, nil)
+	go ble.Scan(ctx, true, advHandler, nil)
 }
 
 func advHandler(a ble.Advertisement) {
