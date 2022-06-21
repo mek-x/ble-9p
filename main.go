@@ -71,6 +71,17 @@ func (f *devicesFile) Write(fid uint64, offset uint64, data []byte) (uint32, err
 	return uint32(len(data)), nil
 }
 
+func MyRMFile(Fs *fs.FS, f fs.FSNode) error {
+	parent, ok := f.Parent().(fs.ModDir)
+	if !ok {
+		return fmt.Errorf("%s does not support modification.", fs.FullPath(f.Parent()))
+	}
+	if f.Parent() == Fs.Root {
+		return fmt.Errorf("can't be removed")
+	}
+	return parent.DeleteChild(f.Stat().Name)
+}
+
 func main() {
 
 	go9p.Verbose = true
@@ -78,15 +89,14 @@ func main() {
 	myFs, root = fs.NewFS("glenda", "glenda", 0777,
 		fs.WithCreateFile(fs.CreateStaticFile),
 		fs.WithCreateDir(fs.CreateStaticDir),
-		fs.WithRemoveFile(fs.RMFile),
-		fs.IgnorePermissions(),
+		fs.WithRemoveFile(MyRMFile),
+		//fs.IgnorePermissions(),
 		//fs.WithAuth(fs.Plan9Auth),
 		//fs.WithAuth(fs.PlainAuth(map[string]string{
 		// 	"kyle": "foo",
 		// 	"jake": "bar",
 		//})),
 	)
-
 
 	root.AddChild(&devicesFile{
 		*fs.NewBaseFile(myFs.NewStat("devices", "glenda", "glenda", 0666)),
