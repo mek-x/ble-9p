@@ -13,9 +13,16 @@ import (
 )
 
 type DevicesEntryJson struct {
-	LastUpdate  int64
-	Rssi        int
-	DataEntries int
+	LastUpdate  int64 `json:"last"`
+	Rssi        int   `json:"rssi"`
+	DataEntries int   `json:"avail"`
+}
+
+type DeviceFileJson struct {
+	Addr       string            `json:"addr"`
+	LastUpdate int64             `json:"last"`
+	Rssi       int               `json:"rssi"`
+	Data       map[string]string `json:"data"`
 }
 
 type device struct {
@@ -80,11 +87,20 @@ func (f *devicesFile) Write(fid uint64, offset uint64, data []byte) (uint32, err
 	e := dir.AddChild(fs.NewDynamicFile(
 		myFs.NewStat(name, "glenda", "glenda", 0666),
 		func() []byte {
-			d := make([]byte, 0)
-			d = append(d, fmt.Sprintf("%s: r = %d\n", devices[name].lastUpdate.Format(time.StampMilli), devices[name].rssi)...)
+			var devs DeviceFileJson
+
+			devs.Addr = name
+			devs.LastUpdate = devices[name].lastUpdate.Unix()
+			devs.Rssi = devices[name].rssi
+			devs.Data = make(map[string]string)
 
 			for k, v := range devices[name].data {
-				d = append(d, []byte(fmt.Sprintf("%s: %s\n", k, hex.EncodeToString(v)))...)
+				devs.Data[k] = hex.EncodeToString(v)
+			}
+			d, err := json.MarshalIndent(&devs, "", "\t")
+
+			if err != nil {
+				return nil
 			}
 			return d
 		},
