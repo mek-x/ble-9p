@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -10,6 +11,12 @@ import (
 	"github.com/knusbaum/go9p/fs"
 	"github.com/knusbaum/go9p/proto"
 )
+
+type DevicesEntryJson struct {
+	LastUpdate  int64
+	Rssi        int
+	DataEntries int
+}
 
 type device struct {
 	lastUpdate time.Time
@@ -28,19 +35,37 @@ type devicesFile struct {
 }
 
 func (f *devicesFile) Read(fid uint64, offset uint64, count uint64) ([]byte, error) {
-	bs := make([]byte, 0, count)
+	devicesData := make(map[string]DevicesEntryJson, len(devices))
 
 	for k, e := range devices {
-		line := []byte(fmt.Sprintf("%s (%ddBm): %s - %d entries\n", k, e.rssi, e.lastUpdate.Format(time.StampMilli), len(e.data)))
-		if len(line) < int(count) {
-			bs = append(bs, line...)
-		} else {
-			break
-		}
-		count = count - uint64(len(line))
+		var d DevicesEntryJson
 
+		d.DataEntries = len(e.data)
+		d.LastUpdate = e.lastUpdate.Unix()
+		d.Rssi = e.rssi
+
+		devicesData[k] = d
 	}
-	return bs[offset:], nil
+
+	out, err := json.MarshalIndent(&devicesData, "", "\t")
+	var bs []byte
+	if err == nil {
+		var length uint64
+		if offset > uint64(len(out)) {
+			length = 0
+		} else {
+			length = uint64(len(out)) - offset
+		}
+
+		if length < count {
+			count = length
+		}
+		bs = make([]byte, count)
+
+		copy(bs, out[offset:])
+	}
+
+	return bs, err
 }
 
 func (f *devicesFile) Stat() proto.Stat {
@@ -90,7 +115,7 @@ func main() {
 		fs.WithCreateFile(fs.CreateStaticFile),
 		fs.WithCreateDir(fs.CreateStaticDir),
 		fs.WithRemoveFile(MyRMFile),
-		//fs.IgnorePermissions(),
+		fs.IgnorePermissions(),
 		//fs.WithAuth(fs.Plan9Auth),
 		//fs.WithAuth(fs.PlainAuth(map[string]string{
 		// 	"kyle": "foo",
