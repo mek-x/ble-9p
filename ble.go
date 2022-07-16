@@ -32,11 +32,6 @@ func StartBleScan() {
 }
 
 func advHandler(a ble.Advertisement) {
-	log.Printf("%s [%ddBm] %s",
-		a.Addr().String(),
-		a.RSSI(),
-		a.LocalName())
-
 	md := a.ManufacturerData()
 	sd := a.ServiceData()
 

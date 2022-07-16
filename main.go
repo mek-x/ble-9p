@@ -125,6 +125,8 @@ func MyRMFile(Fs *fs.FS, f fs.FSNode) error {
 
 func main() {
 
+	log.Println("Starting application")
+
 	go9p.Verbose = true
 
 	myFs, root = fs.NewFS("glenda", "glenda", 0777,
@@ -148,8 +150,10 @@ func main() {
 
 	devices = make(map[string]device)
 
+	log.Println("Starting ble scanning...")
 	StartBleScan()
 
+	log.Println("Starting 9p server...")
 	log.Println(go9p.Serve("0.0.0.0:5640", myFs.Server()))
 }
 
